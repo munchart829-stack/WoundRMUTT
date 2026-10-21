@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบบันทึกผู้เข้ารับบริการทำแผลรายวัน</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: { colors: { primary:'#0F4C81', secondary:'#87CEEB', light:'#F0F8FF' }, fontFamily:{ sans:['Sarabun','sans-serif'] } } } }
+</script>
+<style>
+.nav-link.active{ background:#0F4C8133; color:#0F4C81; font-weight:600; }
+.page{ display:none; }
+.page.active{ display:block; }
+</style>
+</head>
+<body class="bg-light min-h-screen font-sans text-black">
+
+<header class="bg-primary text-white py-5 shadow-md">
+  <div class="container mx-auto px-4 text-center">
+    <h1 class="text-[clamp(1.2rem,3vw,2rem)] font-bold">ระบบบันทึกผู้เข้ารับบริการทำแผลรายวัน</h1>
+    <p class="mt-2 text-secondary">ณ ห้องพยาบาล อาคารสโมสรข้าราชการ มทร.ธัญบุรี</p>
+  </div>
+</header>
+
+<nav class="bg-white shadow-md sticky top-0 z-50">
+  <div class="container mx-auto px-4 py-3 overflow-x-auto">
+    <div class="flex space-x-1 md:space-x-2 whitespace-nowrap">
+      <button onclick="showPage('page1')" class="nav-link active px-3 py-2 rounded-t-lg font-medium hover:bg-secondary/30">หน้าหลัก เช็คชื่อ</button>
+      <button onclick="showPage('page2')" class="nav-link px-3 py-2 rounded-t-lg font-medium hover:bg-secondary/30">บันทึกข้อมูลใหม่</button>
+      <button onclick="showPage('page3')" class="nav-link px-3 py-2 rounded-t-lg font-medium hover:bg-secondary/30">ข้อมูลรายบุคคล</button>
+      <button onclick="showPage('page4')" class="nav-link px-3 py-2 rounded-t-lg font-medium hover:bg-secondary/30">สรุปรายงาน</button>
+      <button onclick="showPage('page5')" class="nav-link px-3 py-2 rounded-t-lg font-medium hover:bg-secondary/30">จัดการข้อมูล</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container mx-auto px-4 py-6">
+
+<!-- ===== หน้า 1 ===== -->
+<section id="page1" class="page active">
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <h2 class="text-xl font-bold text-primary mb-4 flex items-center"><i class="fa fa-list-ul mr-2 text-secondary"></i>รายการผู้เข้ารับบริการ</h2>
+    <div class="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
+      <h3 class="font-bold text-yellow-800 mb-3"><i class="fa fa-bolt mr-2"></i>เช็คชื่อด่วน (คนที่เคยบันทึกแล้ว)</h3>
+      <div class="mb-3"><input type="text" id="quick-search" oninput="filterQuick()" placeholder="🔍 พิมพ์ชื่อเพื่อค้นหา..." class="w-full px-4 py-2 border border-yellow-400 rounded-lg"></div>
+      <div class="flex flex-wrap gap-3 items-end">
+        <select id="quick-name" class="flex-grow min-w-[200px] px-3 py-2 border rounded-lg"><option value="">-- เลือกชื่อ --</option></select>
+        <input type="date" id="quick-date" class="px-3 py-2 border rounded-lg">
+        <button onclick="quickCheckIn()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg"><i class="fa fa-check-circle mr-1"></i>บันทึก</button>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4 items-end">
+      <input type="date" id="filter-date" onchange="renderList()" class="px-3 py-2 border rounded-lg">
+      <input type="text" id="search-name" oninput="renderList()" placeholder="🔍 ค้นหาชื่อ..." class="flex-grow max-w-md px-4 py-2 border rounded-lg">
+      <button onclick="setToday()" class="bg-primary text-white px-4 py-2 rounded-lg">วันนี้</button>
+      <button onclick="clearFilter()" class="bg-gray-200 px-4 py-2 rounded-lg">ทั้งหมด</button>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full min-w-[640px]">
+      <thead><tr class="bg-primary/10"><th class="p-3 text-left">ลำดับ</th><th class="p-3 text-left">วันที่</th><th class="p-3 text-left">ชื่อ-สกุล</th><th class="p-3 text-left">คณะ</th><th class="p-3 text-left">ประเภท</th><th class="p-3 text-center">สถานะ</th><th class="p-3 text-center">ดู</th></tr></thead>
+      <tbody id="att-list"><tr class="text-center text-gray-500"><td colspan="7" class="py-8">ยังไม่มีข้อมูล</td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ===== หน้า 2 ===== -->
+<section id="page2" class="page">
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <h2 class="text-xl font-bold text-primary mb-6 flex items-center"><i class="fa fa-plus-circle mr-2 text-secondary"></i>บันทึกข้อมูลผู้เข้ารับบริการ (คนใหม่)</h2>
+    <form onsubmit="saveRecord(event)" class="space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium mb-1">วันที่เข้ารับบริการ *</label><input type="date" name="visitDate" id="visit-date" required class="w-full px-4 py-2 border rounded-lg"></div>
+        <div><label class="block text-sm font-medium mb-1">ชื่อ-สกุล *</label><input name="fullName" required class="w-full px-4 py-2 border rounded-lg"></div>
+        <div><label class="block text-sm font-medium mb-1">คณะ/หน่วยงาน *</label>
+          <select name="department" onchange="toggleOther('department','dept-other')" required class="w-full px-4 py-2 border rounded-lg">
+            <option value="">-- เลือก --</option>
+            <option>วิศวกรรมศาสตร์</option><option>บริหารธุรกิจ</option><option>ศิลปศาสตร์</option><option>ครุศาสตร์อุตสาหกรรม</option><option>ศิลปกรรมศาสตร์</option><option>เทคโนโลยีคหกรรมศาสตร์</option><option>เทคโนโลยีสื่อสารมวลชน</option><option>วิทยาศาสตร์และเทคโนโลยี</option><option>สถาปัตยกรรมศาสตร์</option><option>เทคโนโลยีการเกษตร</option><option>การแพทย์บูรณาการ</option><option>พยาบาลศาสตร์</option><option>โรงเรียนอนุบาลสาธิตราชมงคลธัญบุรี</option><option>โรงเรียนสาธิตนวัตกรรม</option><option>นักเรียน/นักศึกษาจากสถาบันอื่น</option><option>กองกฎหมาย</option><option>กองกลาง</option><option>กองคลัง</option><option>กองนโยบายและแผน</option><option>กองบริหารงานบุคคล</option><option>กองประชาสัมพันธ์</option><option>กองอาคารสถานที่</option><option>กองยุทธศาสตร์ต่างประเทศ</option><option>กองส่งเสริมสุขภาพและกีฬา</option><option>สำนักงานจัดการทรัพย์สิน</option><option>สำนักงานประกันคุณภาพการศึกษา</option><option>สำนักงานอธิการบดี</option><option>สำนักบัณฑิตศึกษา</option><option>สำนักวิทยบริการและเทคโนโลยีสารสนเทศ</option><option>สำนักส่งเสริมวิชาการและงานทะเบียน</option><option>สำนักสหกิจศึกษา</option><option>สถาบันวิจัยและพัฒนา</option><option>สภาคณาจารย์</option><option>ตรวจสอบภายใน</option><option>สถานีวิทยุกระจายเสียง</option><option>สวัสดิการหอพักนักศึกษา</option><option>สหกรณ์ออมทรัพย์</option><option>เจ้าหน้าที่รักษาความปลอดภัย (รปภ.)</option><option>แม่บ้านบริษัท</option><option>ธนาคารกรุงศรี</option><option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div id="dept-other" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">ระบุเพิ่มเติม</label><input name="departmentOther" class="w-full px-4 py-2 border rounded-lg"></div>
+        <div><label class="block text-sm font-medium mb-1">ประเภท *</label>
+          <select name="personType" required class="w-full px-4 py-2 border rounded-lg"><option value="">-- เลือก --</option><option>นักเรียน</option><option>นักศึกษา</option><option>บุคลากร</option><option>บุคคลภายนอก</option></select>
+        </div>
+        <div><label class="block text-sm font-medium mb-1">ชนิดของบาดแผล *</label>
+          <select name="injuryType" onchange="toggleOther('injuryType','injury-other')" required class="w-full px-4 py-2 border rounded-lg">
+            <option value="">-- เลือก --</option><option>กีฬา</option><option>จักรยานไฟฟ้า(ตั๊กแตนเขียว)</option><option>จักรยาน</option><option>จักรยานยนต์</option><option>รถยนต์/รถรางไฟฟ้า</option><option>ความร้อน/สารเคมี</option><option>ของมีคม</option><option>ชนของแข็ง</option><option>ตกจากที่สูง</option><option>แมลงสัตว์กัดต่อย</option><option>แผลอักเสบ/พุพอง</option><option>แผลเย็บ/ผ่าตัด/ตัดไหม</option><option>เดินเท้า</option><option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div id="injury-other" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">ระบุชนิดแผล</label><input name="injuryTypeOther" class="w-full px-4 py-2 border rounded-lg"></div>
+        <div><label class="block text-sm font-medium mb-1">ปัจจัยของอุบัติเหตุ *</label>
+          <select name="accidentFactor" onchange="onFactor()" required class="w-full px-4 py-2 border rounded-lg">
+            <option value="">-- เลือก --</option><option>ด้านจราจร</option><option>ด้านการเรียนการสอน/โรงฝึกปฏิบัติ</option><option>ด้านสุขภาพใจ (จิต)</option><option>อาการเจ็บป่วยทั่วไป</option><option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div id="factor-other" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">ระบุปัจจัย</label><input name="accidentFactorOther" class="w-full px-4 py-2 border rounded-lg"></div>
+        <div id="cause-box" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">สาเหตุจากการเกิดเหตุ</label>
+          <select name="cause" onchange="toggleOther('cause','cause-other')" class="w-full px-4 py-2 border rounded-lg">
+            <option value="">-- เลือก --</option><option>ขับรถเร็ว</option><option>สภาพถนน/จราจร</option><option>เนินชะลอความเร็ว</option><option>ไม่ปฏิบัติตามกฎจราจร</option><option>ซ้อน 3</option><option>ไม่สวมหมวกนิรภัย</option><option>ประมาท</option><option>ระบายความอัดอั้น</option><option>ลงโทษตัวเอง</option><option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div id="cause-other" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">ระบุสาเหตุ</label><input name="causeOther" class="w-full px-4 py-2 border rounded-lg"></div>
+        <div><label class="block text-sm font-medium mb-1">ระดับความรุนแรง *</label>
+          <select name="severity" required class="w-full px-4 py-2 border rounded-lg">
+            <option value="">-- เลือก --</option><option>ระดับที่ 1 - รักษาที่ห้องพยาบาล</option><option>ระดับที่ 2 - ส่งต่อ รพ. ไม่นอน</option><option>ระดับที่ 3 - พัก ≤ 7 วัน</option><option>ระดับที่ 4 - พัก > 7 วัน</option><option>ระดับที่ 5 - ทุพพลภาพ/เสียชีวิต</option>
+          </select>
+        </div>
+        <div><label class="block text-sm font-medium mb-1">การส่งต่อ</label>
+          <select name="referral" onchange="toggleOther('referral','referral-other')" class="w-full px-4 py-2 border rounded-lg">
+            <option>ไม่มีการส่งต่อ</option><option>รพ.ธัญบุรี</option><option>รพ.บางปะกอก-รังสิต 2</option><option>รพ.แพทย์รังสิต</option><option>รพ.ปทุมเวช</option><option>รพ.เปาโลรังสิต</option><option>รพ.คลองหลวง</option><option>รพ.ธรรมศาสตร์</option><option>รพ.หนองเสือ</option><option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div id="referral-other" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">ระบุโรงพยาบาล</label><input name="referralOther" class="w-full px-4 py-2 border rounded-lg"></div>
+        <div><label class="block text-sm font-medium mb-1">สถานที่เกิดเหตุ *</label>
+          <select name="location" onchange="toggleOther('location','location-detail')" required class="w-full px-4 py-2 border rounded-lg">
+            <option value="">-- เลือก --</option><option value="ภายในมหาวิทยาลัยฯ">ภายในมหาวิทยาลัยฯ</option><option value="ภายนอกมหาวิทยาลัยฯ">ภายนอกมหาวิทยาลัยฯ</option>
+          </select>
+        </div>
+        <div id="location-detail" class="hidden md:col-span-2"><label class="block text-sm font-medium mb-1">ระบุสถานที่ภายใน</label><input name="locationDetail" class="w-full px-4 py-2 border rounded-lg"></div>
+      </div>
+      <div class="flex justify-center"><button type="submit" class="bg-primary text-white font-medium py-3 px-8 rounded-lg shadow-lg"><i class="fa fa-save mr-2"></i>บันทึกข้อมูล</button></div>
+    </form>
+  </div>
+</section>
+
+<!-- ===== หน้า 3 ===== -->
+<section id="page3" class="page">
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <h2 class="text-xl font-bold text-primary mb-6 flex items-center"><i class="fa fa-user-circle mr-2 text-secondary"></i>ข้อมูลรายบุคคล</h2>
+    <div class="mb-4"><label class="block text-sm font-medium mb-1">เลือกผู้เข้ารับบริการ</label>
+      <select id="select-person" onchange="showPerson()" class="w-full md:w-1/2 px-4 py-2 border rounded-lg"><option value="">-- กรุณาเลือก --</option></select>
+    </div>
+    <div id="person-detail" class="mt-6"><p class="text-gray-500 text-center py-8">กรุณาเลือกชื่อ</p></div>
+  </div>
+</section>
+
+<!-- ===== หน้า 4 ===== -->
+<section id="page4" class="page">
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <h2 class="text-xl font-bold text-primary mb-6 flex items-center"><i class="fa fa-bar-chart mr-2 text-secondary"></i>สรุปรายงาน</h2>
+    <div class="mb-6"><label class="block text-sm font-medium mb-1">เลือกเดือนและปี</label><input type="month" id="report-month" onchange="updateReport()" class="px-4 py-2 border rounded-lg"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-light p-4 rounded-lg"><h3 class="font-semibold mb-3 text-center">แยกตามประเภท</h3><canvas id="chart1" height="250"></canvas></div>
+      <div class="bg-light p-4 rounded-lg"><h3 class="font-semibold mb-3 text-center">แยกตามชนิดแผล</h3><canvas id="chart2" height="250"></canvas></div>
+      <div class="bg-light p-4 rounded-lg md:col-span-2"><h3 class="font-semibold mb-3 text-center">แยกตามคณะ</h3><canvas id="chart3" height="250"></canvas></div>
+    </div>
+    <h3 class="font-semibold mb-3">จำนวนครั้งรายบุคคล</h3>
+    <div class="overflow-x-auto"><table class="w-full"><thead><tr class="bg-primary/10"><th class="p-3 text-left">ลำดับ</th><th class="p-3 text-left">ชื่อ-สกุล</th><th class="p-3 text-left">คณะ</th><th class="p-3 text-center">จำนวนครั้ง</th></tr></thead><tbody id="visit-table"><tr class="text-center text-gray-500"><td colspan="4" class="py-4">ยังไม่มีข้อมูล</td></tr></tbody></table></div>
+  </div>
+</section>
+
+<!-- ===== หน้า 5 ===== -->
+<section id="page5" class="page">
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <h2 class="text-xl font-bold text-primary mb-6 flex items-center"><i class="fa fa-database mr-2 text-secondary"></i>จัดการข้อมูล</h2>
+    <div class="bg-light p-5 rounded-lg mb-6">
+      <h3 class="font-semibold mb-3">Google Sheets</h3>
+      <div class="space-y-4">
+        <div><label class="block text-sm font-medium mb-1">Web App URL</label>
+          <div class="flex gap-2"><input type="text" id="sheet-url" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 px-4 py-2 border rounded-lg"><button onclick="saveSheetUrl()" class="bg-secondary text-white px-4 py-2 rounded-lg">บันทึก</button></div>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+          <button onclick="exportSheet()" class="bg-primary text-white px-4 py-2 rounded-lg"><i class="fa fa-upload mr-1"></i>ส่งข้อมูลไป Google Sheet</button>
+          <button onclick="importSheet()" class="bg-green-600 text-white px-4 py-2 rounded-lg"><i class="fa fa-download mr-1"></i>เรียกดูข้อมูลจาก Google Sheet</button>
+          <button onclick="clearAll()" class="bg-red-500 text-white px-4 py-2 rounded-lg"><i class="fa fa-trash mr-1"></i>ล้างข้อมูลทั้งหมด</button>
+        </div>
+      </div>
+    </div>
+    <div class="bg-light p-5 rounded-lg">
+      <h3 class="font-semibold mb-3">ข้อมูลทั้งหมด (<span id="total-count">0</span> รายการ) - กดถังขยะเพื่อลบรายการ</h3>
+      <div class="max-h-[400px] overflow-y-auto"><table class="w-full text-sm">
+        <thead class="sticky top-0 bg-white"><tr class="bg-primary/10"><th class="p-2 text-left">วันที่</th><th class="p-2 text-left">ชื่อ-สกุล</th><th class="p-2 text-left">ประเภท</th><th class="p-2 text-left">ชนิดแผล</th><th class="p-2 text-center">สถานะ</th><th class="p-2 text-center">ลบ</th></tr></thead>
+        <tbody id="all-table"><tr class="text-center text-gray-500"><td colspan="6" class="py-4">ยังไม่มีข้อมูล</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 text-center">
+    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4"><i class="fa fa-check text-2xl text-green-500"></i></div>
+    <h3 class="text-xl font-bold text-green-600 mb-2">สำเร็จ!</h3>
+    <p class="mb-6" id="modal-msg">บันทึกข้อมูลเรียบร้อย</p>
+    <button onclick="closeModal()" class="bg-primary text-white px-6 py-2 rounded-lg">ตกลง</button>
+  </div>
+</div>
+
+<footer class="bg-primary/10 py-4 mt-8"><div class="container mx-auto px-4 text-center text-sm text-gray-600"><p>ระบบบันทึกผู้เข้ารับบริการทำแผลรายวัน - ห้องพยาบาล มทร.ธัญบุรี</p></div></footer>
+
+<script>
+let records = JSON.parse(localStorage.getItem('woundRecords') || '[]');
+let charts = {};
+let allNames = [];
+
+// ===== เปลี่ยนหน้า (ส่วนสำคัญที่ทำให้กดได้) =====
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => { if(l.getAttribute('onclick').includes(id)) l.classList.add('active'); });
+  if(id === 'page4') setTimeout(updateReport, 100);
+  window.scrollTo(0,0);
+}
+
+function fmtDate(s){ const d=new Date(s); return d.getDate()+'/'+(d.getMonth()+1)+'/'+(d.getFullYear()+543); }
+function save(){ localStorage.setItem('woundRecords', JSON.stringify(records)); }
+function toISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function setToday(){ document.getElementById('filter-date').value = toISO(new Date()); renderList(); }
+function clearFilter(){ document.getElementById('filter-date').value = ''; renderList(); }
+
+function toggleOther(n, box){
+  const s = document.querySelector('select[name="'+n+'"]');
+  const b = document.getElementById(box);
+  if(s && b) b.classList.toggle('hidden', s.value !== 'อื่นๆ' && !(n==='location' && s.value==='ภายในมหาวิทยาลัยฯ'));
+}
+function onFactor(){
+  const f = document.querySelector('select[name="accidentFactor"]').value;
+  const show = ['ด้านจราจร','ด้านการเรียนการสอน/โรงฝึกปฏิบัติ','ด้านสุขภาพใจ (จิต)'].includes(f);
+  document.getElementById('cause-box').classList.toggle('hidden', !show);
+  document.getElementById('factor-other').classList.toggle('hidden', f !== 'อื่นๆ');
+}
+
+// ===== ค้นหาชื่อในเช็คชื่อด่วน =====
+function filterQuick(){
+  const q = (document.getElementById('quick-search').value||'').toLowerCase();
+  const sel = document.getElementById('quick-name');
+  sel.innerHTML = '<option value="">-- เลือกชื่อ --</option>';
+  const f = q ? allNames.filter(x => x.name.toLowerCase().includes(q)) : allNames;
+  f.forEach(x => { sel.innerHTML += '<option value="'+x.name+'">'+x.name+' ('+x.dept+')</option>'; });
+  if(f.length === 0) sel.innerHTML += '<option value="" disabled>ไม่พบรายชื่อ</option>';
+}
+
+// ===== เช็คชื่อด่วน =====
+function quickCheckIn(){
+  const name = document.getElementById('quick-name').value;
+  if(!name){ alert('กรุณาเลือกชื่อก่อน'); return; }
+  const list = records.filter(r => r.fullName === name).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const last = list[0];
+  const d = document.getElementById('quick-date').value || toISO(new Date());
+  const now = new Date();
+  const rec = { ...last, id: Date.now(), date: new Date(d+'T'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':00').toISOString(), attended: true };
+  records.unshift(rec); save();
+  document.getElementById('modal-msg').textContent = 'เช็คชื่อ '+name+' เรียบร้อย';
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('quick-name').value = '';
+  document.getElementById('quick-search').value = '';
+  refresh();
+}
+
+// ===== บันทึกข้อมูลใหม่ =====
+function saveRecord(e){
+  e.preventDefault();
+  const f = e.target;
+  const g = n => f.querySelector('[name="'+n+'"]').value;
+  const d = g('visitDate');
+  const now = new Date();
+  const rec = {
+    id: Date.now(), date: new Date(d+'T'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':00').toISOString(),
+    fullName: g('fullName'), department: g('department'), departmentOther: g('departmentOther'),
+    personType: g('personType'), injuryType: g('injuryType'), injuryTypeOther: g('injuryTypeOther'),
+    accidentFactor: g('accidentFactor'), accidentFactorOther: g('accidentFactorOther'),
+    cause: g('cause'), causeOther: g('causeOther'), severity: g('severity'),
+    referral: g('referral'), referralOther: g('referralOther'),
+    location: g('location'), locationDetail: g('locationDetail'), attended: true
+  };
+  records.unshift(rec); save();
+  document.getElementById('modal-msg').textContent = 'บันทึกข้อมูลใหม่เรียบร้อย';
+  document.getElementById('modal').classList.remove('hidden');
+  f.reset();
+  document.getElementById('visit-date').value = toISO(new Date());
+  ['dept-other','injury-other','factor-other','cause-box','cause-other','referral-other','location-detail'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  refresh();
+}
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); showPage('page1'); }
+
+// ===== ลบรายการเดี่ยว =====
+function delRecord(id){
+  const r = records.find(x => x.id === id);
+  if(confirm('ต้องการลบรายการ '+r.fullName+' วันที่ '+fmtDate(r.date)+' หรือไม่?')){
+    records = records.filter(x => x.id !== id);
+    save(); refresh();
+  }
+}
+
+// ===== แสดงรายการหน้า 1 =====
+function renderList(){
+  const tb = document.getElementById('att-list');
+  const q = (document.getElementById('search-name').value||'').toLowerCase();
+  const fd = document.getElementById('filter-date').value;
+  let list = records.filter(r => r.fullName.toLowerCase().includes(q) && (!fd || toISO(new Date(r.date)) === fd));
+  list.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(list.length === 0){ tb.innerHTML = '<tr class="text-center text-gray-500"><td colspan="7" class="py-8">ไม่พบข้อมูล</td></tr>'; return; }
+  tb.innerHTML = list.map((r,i)=>'<tr class="border-b hover:bg-primary/5"><td class="p-3">'+(i+1)+'</td><td class="p-3 text-sm">'+fmtDate(r.date)+'</td><td class="p-3 font-medium">'+r.fullName+'</td><td class="p-3 text-sm">'+(r.department==='อื่นๆ'?r.departmentOther:r.department)+'</td><td class="p-3 text-sm">'+r.personType+'</td><td class="p-3 text-center"><label class="inline-flex items-center cursor-pointer"><input type="checkbox" '+(r.attended?'checked':'')+' class="w-5 h-5" style="accent-color:#0F4C81" onchange="toggleAtt('+r.id+')"><span class="ml-2 text-sm '+(r.attended?'text-green-600':'text-red-500')+'">'+(r.attended?'มา':'ไม่มา')+'</span></label></td><td class="p-3 text-center"><button onclick="viewPerson(\''+r.fullName+'\')" class="text-primary"><i class="fa fa-eye"></i></button></td></tr>').join('');
+}
+function toggleAtt(id){ const r=records.find(x=>x.id===id); if(r){r.attended=!r.attended; save(); renderList();} }
+function viewPerson(name){ showPage('page3'); document.getElementById('select-person').value = name; showPerson(); }
+
+// ===== หน้า 3 =====
+function loadNames(){
+  const m = new Map();
+  records.forEach(r => { if(!m.has(r.fullName)) m.set(r.fullName, {name:r.fullName, dept: r.department==='อื่นๆ'?(r.departmentOther||'อื่นๆ'):r.department}); });
+  allNames = Array.from(m.values()).sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  const sel = document.getElementById('select-person');
+  sel.innerHTML = '<option value="">-- กรุณาเลือก --</option>' + allNames.map(x=>'<option value="'+x.name+'">'+x.name+' - '+x.dept+'</option>').join('');
+  filterQuick();
+}
+function showPerson(){
+  const name = document.getElementById('select-person').value;
+  const box = document.getElementById('person-detail');
+  if(!name){ box.innerHTML='<p class="text-gray-500 text-center py-8">กรุณาเลือกชื่อ</p>'; return; }
+  const v = records.filter(r=>r.fullName===name).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const p = v[0];
+  box.innerHTML = '<div class="bg-light p-5 rounded-lg"><h4 class="font-bold text-lg text-primary mb-4">'+p.fullName+'</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-4">'+
+    '<div><p class="text-sm text-gray-500">คณะ</p><p class="font-medium">'+(p.department==='อื่นๆ'?p.departmentOther:p.department)+'</p></div>'+
+    '<div><p class="text-sm text-gray-500">ประเภท</p><p class="font-medium">'+p.personType+'</p></div>'+
+    '<div><p class="text-sm text-gray-500">ชนิดแผล</p><p class="font-medium">'+(p.injuryType==='อื่นๆ'?p.injuryTypeOther:p.injuryType)+'</p></div>'+
+    '<div><p class="text-sm text-gray-500">ความรุนแรง</p><p class="font-medium">'+p.severity+'</p></div>'+
+    '<div><p class="text-sm text-gray-500">สถานที่</p><p class="font-medium">'+p.location+' '+(p.locationDetail||'')+'</p></div>'+
+    '<div><p class="text-sm text-gray-500">จำนวนครั้ง</p><p class="font-medium text-primary">'+v.length+' ครั้ง</p></div></div>'+
+    '<h5 class="font-semibold mt-6 mb-3">ประวัติ</h5><ul class="space-y-2">'+v.map(x=>'<li class="border-b py-2">• '+fmtDate(x.date)+' — '+x.injuryType+'</li>').join('')+'</ul></div>';
+}
+
+// ===== หน้า 4 รายงาน =====
+function updateReport(){
+  const mv = document.getElementById('report-month').value;
+  if(!mv) return;
+  const [y,m] = mv.split('-');
+  const list = records.filter(r=>{ const d=new Date(r.date); return d.getFullYear()==y && (d.getMonth()+1)==parseInt(m); });
+  const c = {};
+  list.forEach(r=>{ c[r.fullName] = (c[r.fullName]||0)+1; });
+  const rows = Object.entries(c).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('visit-table').innerHTML = rows.length? rows.map(([n,ct],i)=>{ const p=list.find(r=>r.fullName===n); return '<tr class="border-b"><td class="p-3">'+(i+1)+'</td><td class="p-3">'+n+'</td><td class="p-3">'+p.department+'</td><td class="p-3 text-center font-bold text-primary">'+ct+'</td></tr>'; }).join('') : '<tr class="text-center text-gray-500"><td colspan="4" class="py-4">ไม่มีข้อมูล</td></tr>';
+  drawChart('chart1', countBy(list,'personType'));
+  drawChart('chart2', countBy(list,'injuryType'));
+  drawChart('chart3', countBy(list,'department'));
+}
+function countBy(list,key){ const c={}; list.forEach(r=>{ const k=r[key]==='อื่นๆ'?(r[key+'Other']||'อื่นๆ'):r[key]; c[k]=(c[k]||0)+1; }); return c; }
+function drawChart(id, data){
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, { type:'bar', data:{ labels:Object.keys(data), datasets:[{data:Object.values(data), backgroundColor:'#0F4C81', borderRadius:6}] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} } });
+}
+
+// ===== หน้า 5 =====
+function renderAll(){
+  const tb = document.getElementById('all-table');
+  document.getElementById('total-count').textContent = records.length;
+  const s = [...records].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  tb.innerHTML = s.length? s.map(r=>'<tr class="border-b hover:bg-red-50"><td class="p-2">'+fmtDate(r.date)+'</td><td class="p-2">'+r.fullName+'</td><td class="p-2">'+r.personType+'</td><td class="p-2">'+r.injuryType+'</td><td class="p-2 text-center">'+(r.attended?'<span class="text-green-600">มา</span>':'<span class="text-red-500">ไม่มา</span>')+'</td><td class="p-2 text-center"><button onclick="delRecord('+r.id+')" class="text-red-500 hover:bg-red-100 p-1 rounded"><i class="fa fa-trash"></i></button></td></tr>').join('') : '<tr class="text-center text-gray-500"><td colspan="6" class="py-4">ยังไม่มีข้อมูล</td></tr>';
+}
+function saveSheetUrl(){ localStorage.setItem('sheetUrl', document.getElementById('sheet-url').value); alert('บันทึก URL เรียบร้อย'); }
+function clearAll(){ if(confirm('ต้องการล้างข้อมูลทั้งหมดหรือไม่?')){ records=[]; save(); refresh(); alert('ล้างเรียบร้อย'); } }
+function exportSheet(){
+  const url = document.getElementById('sheet-url').value.trim();
+  if(!url || !url.includes('script.google.com')){ alert('กรุณาวาง Web App URL ก่อน'); return; }
+  fetch(url, { method:'POST', body: JSON.stringify(records), headers:{'Content-Type':'text/plain'} })
+  .then(r=>r.json()).then(res=>alert('ส่งสำเร็จ '+res.count+' รายการ')).catch(err=>alert('ส่งไม่สำเร็จ: '+err.message));
+}
+function importSheet(){
+  const url = document.getElementById('sheet-url').value.trim();
+  if(!url || !url.includes('script.google.com')){ alert('กรุณาวาง Web App URL ก่อน'); return; }
+  fetch(url+'?action=read').then(r=>r.json()).then(res=>{
+    if(res.status==='ok' && res.records){ alert('ดึงข้อมูลสำเร็จ '+res.records.length+' รายการ'); console.log(res.records); }
+  }).catch(err=>alert('ดึงไม่สำเร็จ: '+err.message));
+}
+
+function refresh(){ renderList(); loadNames(); renderAll(); if(document.getElementById('report-month').value) updateReport(); }
+
+// ===== เริ่มต้น =====
+document.getElementById('visit-date').value = toISO(new Date());
+document.getElementById('quick-date').value = toISO(new Date());
+document.getElementById('filter-date').value = toISO(new Date());
+document.getElementById('report-month').value = new Date().toISOString().slice(0,7);
+const savedUrl = localStorage.getItem('sheetUrl'); if(savedUrl) document.getElementById('sheet-url').value = savedUrl;
+refresh();
+</script>
+</body>
+</html>
